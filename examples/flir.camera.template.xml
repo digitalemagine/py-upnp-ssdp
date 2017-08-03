@@ -1,0 +1,32 @@
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+	<device>
+		<deviceType>urn:schemas-upnp-org:device:basic:1</deviceType>
+		<friendlyName>{name}</friendlyName> <!-- or "{model.number} {serial}" -->
+		<manufacturer>{manufacturer.name}</manufacturer>
+		<manufacturerURL>{manufacturer.URL}</manufacturerURL>
+		<modelDescription>{model.description}</modelDescription>
+		<modelName>{model.name}</modelName>
+		<modelNumber>{model.number}</modelNumber>
+		<modelURL>{model.url}</modelURL>
+		<serialNumber>AE00614</serialNumber>
+		<UDN>
+			uuid:Upnp-IRCamera-1_0-858fba00-d3a0-11dd-a001-00407F401ABA
+		</UDN>
+		<UPC>123-45-6789</UPC>  <!-- this seems to be a FLIR-only value? -->
+		<serviceList>
+			<service>
+				<serviceType/>
+				<serviceId/>
+				<controlURL/>
+				<eventSubURL/>
+				<SCPDURL/>
+			</service>
+		</serviceList>
+		<presentationURL>http://192.168.1.87:8080</presentationURL>
+		<buildDate>1-April-2011</buildDate>
+	</device>
+</root>

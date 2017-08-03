@@ -10,17 +10,27 @@
 # Implementation of a SSDP server.
 #
 
+# @TODO - need an asyncio version of this! but... there's a known asyncio multicast bug grrrr :
+# https://github.com/python/asyncio/issues/480
+# https://github.com/python/cpython/pull/423
+# checkout, thou:
+# * https://stackoverflow.com/questions/41418023/python-asyncio-how-to-receive-multicast-responses
+# * and its source: https://www.reddit.com/r/learnpython/comments/4drk0a/asyncio_multicast_udp_socket_on_342/
+
+
 import random
 import time
 import socket
 import logging
+import struct
+import asyncio
 from email.utils import formatdate
 from errno import ENOPROTOOPT
 
 SSDP_PORT = 1900
 SSDP_ADDR = '239.255.255.250'
-SERVER_ID = 'ZeWaren example SSDP Server'
-
+SERVER_ID = 'SSDP Server'
+# or pick it based on interface, which is more flexible
 
 logger = logging.getLogger()
 
@@ -31,36 +41,78 @@ class SSDPServer:
     datagram is received by the server."""
     known = {}
 
-    def __init__(self):
+    def __init__(self, local_address):
         self.sock = None
+        # this is REQUIRED to pick the correct interface!!
+        self.local_address = local_address
 
     def run(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.register_multicast()
+
+    def register_multicast(self):
+
+        # Create the socket
+        sock = self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Set some options to make it multicast-friendly
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if hasattr(socket, "SO_REUSEPORT"):
             try:
-                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            # except AttributeError:
+            #     pass  # Some systems don't support SO_REUSEPORT
             except socket.error as le:
                 # RHEL6 defines SO_REUSEPORT but it doesn't work
                 if le.errno == ENOPROTOOPT:
                     pass
                 else:
                     raise
+        sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_TTL, 4)
+        sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_LOOP, 1)
 
         addr = socket.inet_aton(SSDP_ADDR)
-        interface = socket.inet_aton('0.0.0.0')
-        cmd = socket.IP_ADD_MEMBERSHIP
-        self.sock.setsockopt(socket.IPPROTO_IP, cmd, addr + interface)
-        self.sock.bind(('0.0.0.0', SSDP_PORT))
-        self.sock.settimeout(1)
+        # @TODO: with multiple interfaces and mac os there seems to be some mess...
+        # let's try to force the iface we want by setting a specific address.
+        # This probably behaves differently also according to the OS and any additional bridging/routing/etc.
+        # local_address = '0.0.0.0'
+        ttl = struct.pack('b', 1)
+        sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_TTL, ttl)
+        sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_LOOP, 1)
 
+        ssdp_addr = socket.inet_aton(SSDP_ADDR)
+        iface_addr = socket.inet_aton(self.local_address)
+
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, iface_addr)
+
+        # this is for listening to ALL interfaces.. but seems messy and confusing
+        # mreq = struct.pack('4sL', ssdp_addr, socket.INADDR_ANY)
+        mreq = ssdp_addr + iface_addr
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        sock.bind(('', SSDP_PORT))
+        # sock.settimeout(1)
+        sock.setblocking(0)
+
+        notify_timeout = time.time()
         while True:
+            # @TODO arg - re-implement this without a busy loop?
             try:
                 data, addr = self.sock.recvfrom(1024)
                 self.datagram_received(data, addr)
             except socket.timeout:
                 continue
+            except socket.error as e:
+                if e.errno == socket.errno.EWOULDBLOCK:  # == errno.EAGAIN
+                    # no data yet
+                    time.sleep(0.2)
+                else:
+                    print("Unknown socket error: {}".format(e))
+                    break
+            if time.time() - notify_timeout > 10:
+                self.do_notify()
+                notify_timeout = time.time()
+
         self.shutdown()
+
+    # @TODO we should also send NOTIFY of our own... that's what FLIR does...
 
     def shutdown(self):
         for st in self.known:
@@ -101,6 +153,7 @@ class SSDPServer:
                  host=None):
         """Register a service or device that this SSDP server will
         respond to."""
+        # @TODO Extremely messy parameters
 
         logging.info('Registering %s (%s)' % (st, location))
 
@@ -117,6 +170,9 @@ class SSDPServer:
         self.known[usn]['HOST'] = host
         self.known[usn]['last-seen'] = time.time()
 
+        # @todo better naming, but we want an easy way to access our own info!
+        self.settings = self.known[usn]
+
         if manifestation == 'local' and self.sock:
             self.do_notify(usn)
 
@@ -127,12 +183,12 @@ class SSDPServer:
     def is_known(self, usn):
         return usn in self.known
 
-    def send_it(self, response, destination, delay, usn):
-        logger.debug('send discovery response delayed by %ds for %s to %r' % (delay, usn, destination))
+    def send_it(self, response, destination, usn, delay):
+        logger.debug('send discovery response delayed by %fs for %s to %r', delay, usn, destination)
         try:
             self.sock.sendto(response.encode(), destination)
         except (AttributeError, socket.error) as msg:
-            logger.warning("failure sending out byebye notification: %r" % msg)
+            logger.warning("failure sending out byebye notification: %r", msg)
 
     def discovery_request(self, headers, host_port):
         """Process a discovery request.  The response must be sent to
@@ -163,23 +219,27 @@ class SSDPServer:
                     response.append('DATE: %s' % formatdate(timeval=None, localtime=False, usegmt=True))
 
                     response.extend(('', ''))
-                    delay = random.randint(0, int(headers['mx']))
+                    delay = random.random() * int(headers['mx'])
 
-                    self.send_it('\r\n'.join(response), (host, port), delay, usn)
+                    self.send_it('\r\n'.join(response), (host, port), usn, delay)
 
-    def do_notify(self, usn):
+    def do_notify(self, usn=None):
         """Do notification"""
-
-        if self.known[usn]['SILENT']:
+        # I don't think i need to keep usn as an option..
+        if usn:
+            settings = self.known[usn]
+        else:
+            settings = self.settings
+        if settings['SILENT']:
             return
-        logger.info('Sending alive notification for %s' % usn)
+        logger.info('Sending NOTIFY for %s', settings['USN'])
 
         resp = [
             'NOTIFY * HTTP/1.1',
             'HOST: %s:%d' % (SSDP_ADDR, SSDP_PORT),
             'NTS: ssdp:alive',
         ]
-        stcpy = dict(self.known[usn].items())
+        stcpy = dict(settings.items())
         stcpy['NT'] = stcpy['ST']
         del stcpy['ST']
         del stcpy['MANIFESTATION']
@@ -189,10 +249,14 @@ class SSDPServer:
 
         resp.extend(map(lambda x: ': '.join(x), stcpy.items()))
         resp.extend(('', ''))
-        logger.debug('do_notify content', resp)
+        dest = (SSDP_ADDR, SSDP_PORT)
+        text = '\r\n'.join(resp)
+        logger.info('do_notify content to %s', dest)
+        # logger.debug(text)
         try:
-            self.sock.sendto('\r\n'.join(resp).encode(), (SSDP_ADDR, SSDP_PORT))
-            self.sock.sendto('\r\n'.join(resp).encode(), (SSDP_ADDR, SSDP_PORT))
+            # @todo m87 sends multiple notifications with slight variations...
+            # self.sock.sendto('\r\n'.join(resp).encode(), dest)
+            print("sent: %d" % self.sock.sendto(text.encode(), dest))
         except (AttributeError, socket.error) as msg:
             logger.warning("failure sending out alive notification: %r" % msg)
 

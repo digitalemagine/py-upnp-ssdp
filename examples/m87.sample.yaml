@@ -1,0 +1,28 @@
+---
+
+# this is an example for our OWN m87
+
+  name: M-625L AE00614  # default for FLIR m87 is "{model.number} {serial}"
+  manufacturer:
+    name: FLIR Commercial Vision Systems
+    URL: http://www.flir.com
+  model:
+    name: M-Series
+    description: Maritime Infrared Camera
+    number: M-625L
+    url: http://www.flir.com/maritime/
+  serial: AE00614  # custom
+  # UDN Is uuid:{UDN}-MACADDR
+  UDN: Upnp-IRCamera-1_0-858fba00-d3a0-11dd-a001
+  MAC: 00407F401ABA
+  # custom
+  build_date: 1-April-2011
+  UPC: 123-45-6789   # this seems a fake and unused value
+  # template: if we need a custom one
+
+
+
+
+## Should we auto generate the XML, or should we use a template?
+## Auto generating is appealing, but requires respecting names more strictly,
+##  and more difficult to do composition

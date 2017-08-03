@@ -1,0 +1,32 @@
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+	<device>
+		<deviceType>urn:schemas-upnp-org:device:basic:1</deviceType>
+		<friendlyName>M-625L AE00614</friendlyName>
+		<manufacturer>FLIR Commercial Vision Systems</manufacturer>
+		<manufacturerURL>http://www.flir.com</manufacturerURL>
+		<modelDescription>Maritime Infrared Camera</modelDescription>
+		<modelName>M-Series</modelName>
+		<modelNumber>M-625L</modelNumber>
+		<modelURL>http://www.flir.com/maritime/</modelURL>
+		<serialNumber>AE00614</serialNumber>
+		<UDN>
+			uuid:Upnp-IRCamera-1_0-858fba00-d3a0-11dd-a001-00407F401ABA
+		</UDN>
+		<UPC>123-45-6789</UPC>
+		<serviceList>
+			<service>
+				<serviceType/>
+				<serviceId/>
+				<controlURL/>
+				<eventSubURL/>
+				<SCPDURL/>
+			</service>
+		</serviceList>
+		<presentationURL>http://192.168.1.87:8080</presentationURL>
+		<buildDate>1-April-2011</buildDate>
+	</device>
+</root>
