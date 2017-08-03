@@ -87,4 +87,17 @@ The client now knows (nearly) everything about the device.
 ## Relevant links
 
  * UPnP™ Device Architecture 1.1 (UPnP forum, October 15, 2008): http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v1.1.pdf
- * Coherence - DLNA/UPnP framework for the digital living:  https://pypi.python.org/pypi/Coherence
+
+### Alternative (Python) implementations
+ * [miniupnp](http://miniupnp.free.fr/): implements the Internet Gateway Device (IGD) part of UPnP Standard, with Python bindings 
+ * [Coherence](https://pypi.python.org/pypi/Coherence ) - **not maintained** FULL DLNA/UPnP framework for the digital living -(https://github.com/coherence-project/Coherence)
+ * [miranda-upnp](https://github.com/0x90/miranda-upnp) - **not maintained** - client application designed to discover, query and interact with UPNP devices, particularly Internet Gateway Devices
+ * [UPnP client](https://github.com/skatkov/upnp-client-lib) - from Miranda UPnP
+ * [UPnP inspector](https://pypi.python.org/pypi/UPnP-Inspector) - **not maintained**
+ * PyUPnP **not maintained** (4years), based on Twisted 
+ * python-brisa  **not maintained**. Source code: https://garage.maemo.org/projects/brisa/ 
+ 
+ 
+ 
+ 
+ 
