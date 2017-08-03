@@ -1,12 +1,14 @@
-# Python UPnP Example
+# Python UPnP-SSDP
 
 ## Introduction
 
 This code implements a SSDP server and a HTTP server, in order to notify the network that a device is here.
 
-The base of this code was the [SSDP module](https://github.com/palfrey/coherence/blob/master/coherence/upnp/core/ssdp.py) of [coherence](http://coherence.beebits.net) .
-I took it, converted it to Python 3, and kept only the interesting parts for this project: the parts that responds to `MSEARCH` queries.
- 
+The base of this code is [ZeWaren/python-upnp-ssdp-example](https://github.com/ZeWaren/python-upnp-ssdp-example) which in turn comes from the [SSDP module](https://github.com/palfrey/coherence/blob/master/coherence/upnp/core/ssdp.py) of [coherence](http://coherence.beebits.net) .
+ZeWaren, converted it to Python 3, and kept only the interesting parts for this project: the parts that responds to `MSEARCH` queries.
+
+## Example
+
 ![Our device is the network view of Windows 10](a-upnp-device-visible-in-the-network-center-of-windows-10.png "Our device is the network view ofWindows 10")
 
 ## Technical details
