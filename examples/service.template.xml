@@ -5,7 +5,7 @@
 	</specVersion>
 	<device>
 		<deviceType>urn:schemas-upnp-org:device:basic:1</deviceType>
-		<friendlyName>{name}</friendlyName> <!-- or "model[number] serial" -->
+		<friendlyName>{name}</friendlyName>
 		<manufacturer>{manufacturer[name]}</manufacturer>
 		<manufacturerURL>{manufacturer[URL]}</manufacturerURL>
 		<modelDescription>{model[description]}</modelDescription>
@@ -15,11 +15,9 @@
 		<serialNumber>{serial}</serialNumber>
 		<UDN>
 			uuid:{UDN}-{MAC}
-		</UDN>  <!-- we either need a smarter json, or custom templates -->
-		<!--UPC>{UPC}</UPC-->  <!-- this seems to be a FLIR-only value? -->
+		</UDN>
 		<serviceList>
 			<service>
-                <!-- there can be multiple services... how do we describe them with just a template? -->
 				<serviceType/>
 				<serviceId/>
 				<controlURL/>
@@ -27,7 +25,7 @@
 				<SCPDURL/>
 			</service>
 		</serviceList>
-		<presentationURL>http://[address]:[port]</presentationURL>
+		<presentationURL>{presentation_url}</presentationURL>
 		<buildDate>{build_date}</buildDate>
 	</device>
 </root>

@@ -1,0 +1,17 @@
+---
+
+# this is an example for our OWN m87
+
+  name: NiDAR
+  manufacturer:
+    name: MARSS
+    URL: http://www.marss.com
+  model:
+    name: M-Series
+    description: NiDAR Command and Control
+    number: v3  #  M-625L
+    url: http://www.marss.com/nidar/
+  serial: zodiac01  # AE00613  # custom
+  UDN: Upnp-IRCamera-blahblahblah
+  MAC: 123456789012
+  build_date: 1-April-2017

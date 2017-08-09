@@ -19,7 +19,8 @@
   build_date: 1-April-2011
   UPC: 123-45-6789   # this seems a fake and unused value
   # template: if we need a custom one
-
+  ssdp:
+    response: udp  # or ssdp, default
 
 ## Should we auto generate the XML, or should we use a template?
 ## Auto generating is appealing, but requires respecting names more strictly,

@@ -183,12 +183,12 @@ class SSDPServer:
     def is_known(self, usn):
         return usn in self.known
 
-    def send_it(self, response, destination, usn, delay):
-        logger.debug('send discovery response delayed by %fs for %s to %r', delay, usn, destination)
+    def send_unicast(self, response, destination, usn, delay):
+        logger.debug('send (discovery) response delayed by %fs for %s to %r', delay, usn, destination)
         try:
             self.sock.sendto(response.encode(), destination)
         except (AttributeError, socket.error) as msg:
-            logger.warning("failure sending out byebye notification: %r", msg)
+            logger.warning("failure sending out response: %r", msg)
 
     def discovery_request(self, headers, host_port):
         """Process a discovery request.  The response must be sent to
@@ -221,7 +221,7 @@ class SSDPServer:
                     response.extend(('', ''))
                     delay = random.random() * int(headers['mx'])
 
-                    self.send_it('\r\n'.join(response), (host, port), usn, delay)
+                    self.send_unicast('\r\n'.join(response), (host, port), usn, delay=0)
 
     def do_notify(self, usn=None):
         """Do notification"""

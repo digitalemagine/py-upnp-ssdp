@@ -1,3 +1,4 @@
+import argparse
 import os
 import uuid
 import json
@@ -9,7 +10,7 @@ try:
     import netifaces
 except:
     netifaces = None
-    print("netifaces not available. No interface validation.")
+    print("netifaces not available. You need to specify an IP address to bind to.")
 
 from .ssdp import SSDPServer
 from .http_server import UPNPHTTPServer
@@ -44,48 +45,77 @@ def get_network_interface_ip_address(interface):
         return interface[2][0]['addr']
 
 
+# @TODO once clean, move into separate file
 class ServiceDescription:
 
-    def __init__(self, dscr):
+    def __init__(self, dscr, address):
         with open(dscr) as f:
-            _dscrp = self._description_data = yaml.load(f)
-        if _dscrp.get('template'):
+            values = self._description_data = yaml.load(f)
+        if values.get('template'):
             # a template in the json will override the template
-            template = _dscrp.get('template')
+            template = values.get('template')
         else:
             # not sure if this the best place to put it
             template = "examples/service.template.xml"
 
+        values.update({'presentation_url': 'http://{}:{}/description.xml'.format(*address)})
+        self._values = values
         path = os.path.dirname(__file__)
         with open(os.path.join(path, "..", template)) as f:
             _template = f.read()
-        self.description = _template.format(**_dscrp)
+        self.description = _template.format(**values)
+
+    def __getattr__(self, item):
+        return self._values[item]
+
+    @property
+    def usn(self):
+        # USN: uuid:Upnp-IRCamera-1_0-858fba00-d3a0-11dd-a001-00407F401ABA::upnp:rootdevice
+        return 'uuid:{}-{}::upnp:rootdevice'.format(self._values['UDN'], self._values['MAC'])
 
 
 
-def main(description_file, interface=None):
+def main(description_file, interface=None, address=None):
     """
 
     :param description: where to find the json server description
     :return:
     """
 
-    device_uuid = uuid.uuid4()  # instead use some config
-    local_ip_address = get_network_interface_ip_address(interface)
+    local_ip_address = get_network_interface_ip_address(interface) or address
+    port = 8088  # @todo make this parameteric as well
 
-    description = ServiceDescription(description_file)
-    http_server = UPNPHTTPServer((local_ip_address, 8088), description.description)
+    assert local_ip_address, "You need to specify a local IP address, either by IP or interface (requires netifaces)"
+
+    description = ServiceDescription(description_file, address=(local_ip_address, port))
+    http_server = UPNPHTTPServer((local_ip_address, port), description.description)
+    # http_server = UPNPHTTPServer(('0.0.0.0', port), description.description)
     http_server.start()
 
-    ssdp = SSDPServer()
+    ssdp = SSDPServer(local_ip_address)
     # those definitions should probably be automatic, give the UUID!
     ssdp.register('local',
-                  'uuid:{}::upnp:rootdevice'.format(device_uuid),
-                  'upnp:rootdevice',
+                  description.usn,
+                  'upnp:rootdevice',  # what are options exist?
                   http_server.description_url)
     ssdp.run()
 
 # @todo instead of making it complicated with the interface, it's easier to just pass an ip address ;-)
+# but of course that's way less future proof...
+
+
+
+parser = argparse.ArgumentParser(description='UPNP Server.')
+parser.add_argument('device_description', default='examples/m87.yaml', nargs='?',
+                    help='description of the services(s) offered by this server')
+parser.add_argument('-i', '--iface', default='eth0',
+                    help='interface to be used to subscribe and send multicast packets. '
+                         'Due to how networking works on *nix we get an ipaddress from the iface,'
+                         ' which is then used to associate the socket (IP_MULTICAST_IF)')
+parser.add_argument('-a', '--address', default=None,
+                    help='address to be used to subscribe and send multicast packets.')
+
+args = parser.parse_args()
 
 # make those parametric from command line...
-main('examples/m87.yaml', 'en3')  #bridge100
+main(args.device_description, args.iface, args.address)
